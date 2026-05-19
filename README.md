@@ -25,16 +25,11 @@ Claude Code 飞书通知 Skill —— 任务完成或需要确认时，通过飞
 
 ## 安装
 
-```bash
-git clone https://github.com/Lyle-sun/claudecode-feishu-notify.git
-cp -r claudecode-feishu-notify/skills/lark-workflow-cc-notify ~/.claude/skills/
-```
+在 Claude Code 中说：
 
-然后在 Claude Code 中说：
+> 帮我从 https://github.com/Lyle-sun/claudecode-feishu-notify 安装这个 skill，然后配置飞书通知
 
-> 帮我配置飞书通知
-
-Claude Code 会引导你完成配置（全程交互式）：
+Claude Code 会自动 clone 仓库、部署 skill，并引导你完成配置（全程交互式）：
 
 1. 安装 lark-cli（自动）
 2. 创建飞书自建应用 + 启用机器人能力
@@ -45,9 +40,9 @@ Claude Code 会引导你完成配置（全程交互式）：
 
 **安装完成后重启 Claude Code 会话即可生效。**
 
-### 不使用 Skill 引导
+### 手动安装
 
-如果不想通过 Skill 引导，也可以直接运行安装脚本：
+如果不想通过 Claude Code 引导，也可以直接运行安装脚本：
 
 ```bash
 git clone https://github.com/Lyle-sun/claudecode-feishu-notify.git
