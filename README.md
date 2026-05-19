@@ -2,27 +2,33 @@
 
 飞书通知 Claude Code 事件 —— 任务完成或需要确认时，通过飞书私聊卡片消息 + 加急提醒你。
 
+**适用人群**：长时间使用 Claude Code 且需要离开终端的开发者。让 Claude 跑一个耗时任务（代码重构、批量修改），去做别的事，完成时飞书通知你回来。
+
 ## 功能
 
-- **任务完成通知**：Claude Code 每个 turn 结束时，飞书绿色卡片 + 加急
+- **任务完成通知**：Claude Code 每个 turn 结束时，飞书绿色卡片 + 加急，显示项目名和 Claude 最后的回复摘要
 - **确认提醒**：Claude Code 需要你确认操作时，飞书橙色卡片 + 加急
 - **空闲提醒**：Claude Code 空闲等待时，飞书蓝色卡片 + 加急
+- **认证成功通知**：Claude Code 认证成功时，飞书绿色卡片 + 加急
+- **静音模式**：设置 `CC_FEISHU_NOTIFY=0` 可临时关闭所有通知
 
 ## 通知样式
 
 | 事件 | 卡片颜色 | 示例 |
 |------|---------|------|
 | Stop（任务完成） | 🟢 绿色 | ✅ Claude Code 任务完成 |
+| Stop（异常） | 🔴 红色 | ❌ Claude Code 任务异常 |
 | Notification（需要确认） | 🟠 橙色 | ⚠️ Claude Code 需要确认 |
 | Notification（空闲等待） | 🔵 蓝色 | ⏳ Claude Code 等待中 |
+| Notification（认证成功） | 🟢 绿色 | ✅ Claude Code 认证成功 |
 
 ## 前置条件
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 已安装
-- [Node.js](https://nodejs.org) 已安装（lark-cli 依赖）
 - Python 3 已安装
 - macOS/Linux 需安装 `jq`（install.sh 可自动安装）
-- 飞书账号，且有权限创建/管理自建应用
+
+> Node.js 和 lark-cli 会由安装脚本自动安装（如未安装）。macOS/Linux 通过 brew/apt/dnf 等包管理器安装 Node.js，Windows 通过 winget 安装。
 
 ## 安装
 
@@ -67,24 +73,29 @@ lark-cli contact +get-user --as user
 
 记录返回的 `open_id`（格式：`ou_xxxxxxxx`）。
 
-### Step 6: 配置并部署
+### Step 6: 配置环境变量
+
+**macOS / Linux**（添加到 `~/.zshrc` 或 `~/.bashrc`）：
+
+```bash
+export CC_FEISHU_OPEN_ID="ou_YOUR_OPEN_ID"
+```
+
+**Windows PowerShell**（永久设置用户环境变量）：
+
+```powershell
+[Environment]::SetEnvironmentVariable("CC_FEISHU_OPEN_ID", "ou_YOUR_OPEN_ID", "User")
+```
+
+设置后重启终端，或执行 `source ~/.zshrc` 使环境变量生效。
+
+### Step 7: 运行安装脚本
 
 **macOS / Linux：**
 
 ```bash
-# 克隆仓库
-git clone https://github.com/<your-username>/claude-code-feishu-notify.git
-cd claude-code-feishu-notify
-
-# 替换 open_id（跨平台，用 python3 替代 sed）
-python3 -c "
-with open('notify-feishu.sh') as f:
-    t = f.read().replace('ou_REPLACE_ME', 'ou_YOUR_OPEN_ID')
-with open('notify-feishu.sh', 'w') as f:
-    f.write(t)
-"
-
-# 运行安装脚本
+git clone https://github.com/Lyle-sun/claudecode-feishu-notify.git
+cd claudecode-feishu-notify
 chmod +x install.sh
 ./install.sh
 ```
@@ -92,37 +103,39 @@ chmod +x install.sh
 **Windows PowerShell：**
 
 ```powershell
-# 克隆仓库
-git clone https://github.com/<your-username>/claude-code-feishu-notify.git
-cd claude-code-feishu-notify
-
-# 替换 open_id
-(Get-Content notify-feishu.ps1 -Raw) -replace 'ou_REPLACE_ME', 'ou_YOUR_OPEN_ID' | Set-Content notify-feishu.ps1
-
-# 运行安装脚本
+git clone https://github.com/Lyle-sun/claudecode-feishu-notify.git
+cd claudecode-feishu-notify
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 .\install.ps1
 ```
 
-### Step 7: 重启 Claude Code
+### Step 8: 重启 Claude Code
 
 **hooks 配置在重启 Claude Code 会话后生效。** 请退出当前会话并重新打开。
 
-### Step 8: 验证
+### Step 9: 验证
 
 **macOS / Linux：**
 
 ```bash
-echo '{"hook_event_name":"Stop","stop_reason":"end_turn"}' | ~/.claude/hooks/notify-feishu.sh
+echo '{"hook_event_name":"Stop","last_assistant_message":"Hello, task done!","cwd":"/path/to/project"}' | ~/.claude/hooks/notify-feishu.sh
 ```
 
 **Windows PowerShell：**
 
 ```powershell
-'{"hook_event_name":"Stop","stop_reason":"end_turn"}' | & "$env:USERPROFILE\.claude\hooks\notify-feishu.ps1"
+'{"hook_event_name":"Stop","last_assistant_message":"Hello, task done!","cwd":"C:\path\to\project"}' | & "$env:USERPROFILE\.claude\hooks\notify-feishu.ps1"
 ```
 
-飞书应收到绿色卡片加急通知。
+飞书应收到绿色卡片加急通知，显示项目名和消息摘要。
+
+也可以验证 Notification 事件：
+
+```bash
+echo '{"hook_event_name":"Notification","message":"需要确认操作","notification_type":"permission_prompt"}' | ~/.claude/hooks/notify-feishu.sh
+```
+
+飞书应收到橙色卡片加急通知。
 
 ## 项目结构
 
@@ -135,17 +148,27 @@ claude-code-feishu-notify/
 ├── skills/
 │   └── lark-workflow-cc-notify/
 │       └── SKILL.md            # Claude Code skill 定义
+├── .gitignore
 ├── README.md
 └── LICENSE
 ```
+
+## 环境变量
+
+| 变量 | 必填 | 说明 |
+|------|------|------|
+| `CC_FEISHU_OPEN_ID` | 是 | 你的飞书 open_id（格式 `ou_xxxx`） |
+| `CC_FEISHU_NOTIFY` | 否 | 设为 `0` 时关闭所有通知（默认 `1` 开启） |
 
 ## Hook 事件
 
 | 事件 | Matcher | 卡片颜色 | 触发时机 |
 |------|---------|---------|---------|
 | Stop | (all) | 绿色 | Claude Code 完成一个 turn |
+| Stop（含错误） | (all) | 红色 | 消息中包含 API Error / Traceback 等关键词 |
 | Notification | permission_prompt | 橙色 | 需要用户确认操作 |
 | Notification | idle_prompt | 蓝色 | Claude Code 空闲等待 |
+| Notification | auth_success | 绿色 | 认证成功 |
 
 ## 卸载
 
