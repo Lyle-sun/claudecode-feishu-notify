@@ -2,10 +2,15 @@
 # Claude Code → Feishu notification hook
 # Sends a card message with urgent (加急) when Claude Code completes a task or needs attention.
 
-set -euo pipefail
+set -uo pipefail
 
-# Replace with your open_id (run: lark-cli contact +get-user --as user)
 USER_OPEN_ID="ou_REPLACE_ME"
+
+# Validate USER_OPEN_ID (check prefix pattern, not literal value)
+if [[ "$USER_OPEN_ID" == "ou_REPLACE"* ]]; then
+  echo "[cc-notify] USER_OPEN_ID not configured. Edit this script and set your open_id." >&2
+  exit 1
+fi
 
 input=$(cat)
 
@@ -59,19 +64,25 @@ card=$(jq -nc \
     ]
   }')
 
-# Send card message via lark-cli
+# Send card message via lark-cli (capture stdout only, stderr to log)
 send_result=$(lark-cli im +messages-send \
   --as bot \
   --user-id "$USER_OPEN_ID" \
   --content "$card" \
-  --msg-type interactive 2>&1) || true
+  --msg-type interactive 2>/dev/null)
 
-# Extract message_id and mark as urgent
+if [ -z "$send_result" ]; then
+  echo "[cc-notify] Failed to send message via lark-cli" >&2
+  exit 1
+fi
+
+# Extract message_id
 msg_id=$(echo "$send_result" | jq -r '.data.message_id // empty' 2>/dev/null)
 
 if [ -n "$msg_id" ]; then
+  urgent_data=$(jq -nc --arg uid "$USER_OPEN_ID" '{"user_id_list": [$uid]}')
   lark-cli api PATCH "/open-apis/im/v1/messages/${msg_id}/urgent_app" \
     --as bot \
     --params '{"user_id_type":"open_id"}' \
-    --data "{\"user_id_list\":[\"$USER_OPEN_ID\"]}" >/dev/null 2>&1 || true
+    --data "$urgent_data" 2>/dev/null || echo "[cc-notify] Failed to mark message as urgent" >&2
 fi

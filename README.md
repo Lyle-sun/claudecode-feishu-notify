@@ -19,7 +19,9 @@
 ## 前置条件
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 已安装
-- 系统需安装 `jq`（`brew install jq`）
+- [Node.js](https://nodejs.org) 已安装（lark-cli 依赖）
+- Python 3 已安装
+- macOS/Linux 需安装 `jq`（install.sh 可自动安装）
 - 飞书账号，且有权限创建/管理自建应用
 
 ## 安装
@@ -65,39 +67,74 @@ lark-cli contact +get-user --as user
 
 记录返回的 `open_id`（格式：`ou_xxxxxxxx`）。
 
-### Step 6: 部署本项目
+### Step 6: 配置并部署
+
+**macOS / Linux：**
 
 ```bash
 # 克隆仓库
-git clone https://github.com/你的用户名/claude-code-feishu-notify.git
+git clone https://github.com/<your-username>/claude-code-feishu-notify.git
 cd claude-code-feishu-notify
 
-# 修改 notify-feishu.sh 中的 USER_OPEN_ID 为你的 open_id
-# 将 ou_REPLACE_ME 替换为 Step 5 获取的 open_id
-sed -i '' 's/ou_REPLACE_ME/ou_你的实际id/' notify-feishu.sh
+# 替换 open_id（跨平台，用 python3 替代 sed）
+python3 -c "
+import sys
+f='notify-feishu.sh'
+t=open(f).read().replace('ou_REPLACE_ME', 'ou_你的实际id')
+open(f,'w').write(t)
+"
 
 # 运行安装脚本
 chmod +x install.sh
 ./install.sh
 ```
 
-### Step 7: 验证
+**Windows PowerShell：**
+
+```powershell
+# 克隆仓库
+git clone https://github.com/<your-username>/claude-code-feishu-notify.git
+cd claude-code-feishu-notify
+
+# 替换 open_id
+(Get-Content notify-feishu.ps1 -Raw) -replace 'ou_REPLACE_ME', 'ou_你的实际id' | Set-Content notify-feishu.ps1
+
+# 运行安装脚本
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+.\install.ps1
+```
+
+### Step 7: 重启 Claude Code
+
+**hooks 配置在重启 Claude Code 会话后生效。** 请退出当前会话并重新打开。
+
+### Step 8: 验证
+
+**macOS / Linux：**
 
 ```bash
 echo '{"hook_event_name":"Stop","stop_reason":"end_turn"}' | ~/.claude/hooks/notify-feishu.sh
 ```
 
-飞书应收到绿色卡片加急通知。**重启 Claude Code 会话后 hooks 生效。**
+**Windows PowerShell：**
+
+```powershell
+'{"hook_event_name":"Stop","stop_reason":"end_turn"}' | & "$env:USERPROFILE\.claude\hooks\notify-feishu.ps1"
+```
+
+飞书应收到绿色卡片加急通知。
 
 ## 项目结构
 
 ```
 claude-code-feishu-notify/
-├── notify-feishu.sh                        # 核心脚本：发飞书卡片消息 + 加急
-├── install.sh                              # 安装脚本：部署 hook + 配置 settings
+├── notify-feishu.sh            # 核心脚本（macOS/Linux）
+├── notify-feishu.ps1           # 核心脚本（Windows）
+├── install.sh                  # 安装脚本（macOS/Linux）
+├── install.ps1                 # 安装脚本（Windows）
 ├── skills/
 │   └── lark-workflow-cc-notify/
-│       └── SKILL.md                        # Claude Code skill 定义
+│       └── SKILL.md            # Claude Code skill 定义
 ├── README.md
 └── LICENSE
 ```
@@ -116,7 +153,7 @@ claude-code-feishu-notify/
 
 ## 工作原理
 
-1. Claude Code hooks 机制在事件触发时调用 `notify-feishu.sh`
+1. Claude Code hooks 机制在事件触发时调用通知脚本
 2. 脚本从 stdin 读取事件 JSON，根据事件类型生成飞书卡片内容
 3. 通过 `lark-cli im +messages-send --msg-type interactive` 发送飞书卡片私聊消息
 4. 从发送结果提取 `message_id`，调用 `PATCH /open-apis/im/v1/messages/{message_id}/urgent_app` 加急
