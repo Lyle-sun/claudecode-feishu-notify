@@ -111,13 +111,6 @@ claudecode-feishu-notify/
 
 编辑 `~/.claude/settings.json`，移除 `hooks` 中的 `Stop` 和 `Notification` 条目。
 
-## 工作原理
-
-1. Claude Code hooks 机制在事件触发时调用通知脚本
-2. 脚本从 stdin 读取事件 JSON，根据 `notification_type` 字段生成对应颜色的飞书卡片
-3. 通过 `lark-cli` 发送飞书卡片私聊消息
-4. 调用加急 API 标记消息为加急
-
 ## License
 
 MIT
