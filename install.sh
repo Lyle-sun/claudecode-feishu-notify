@@ -41,7 +41,12 @@ fi
 if ! command -v lark-cli &>/dev/null; then
   warn "lark-cli not found. Installing..."
   if command -v npm &>/dev/null; then
-    if npm install -g @larksuite/cli 2>/dev/null; then
+    if npm install -g @larksuite/cli; then
+      # Verify lark-cli is now available
+      if ! command -v lark-cli &>/dev/null; then
+        error "lark-cli installed but not found in PATH. You may need to restart your shell or run: npm config get prefix"
+        exit 1
+      fi
       info "lark-cli installed"
     else
       error "npm install -g failed. You may need: sudo npm install -g @larksuite/cli"
@@ -82,9 +87,17 @@ if [ -z "$auth_output" ]; then
 else
   expires=$(echo "$auth_output" | jq -r '.expiresAt // empty' 2>/dev/null)
   if [ -n "$expires" ]; then
-    expires_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S" "${expires%%+*}" "+%s" 2>/dev/null || date -d "${expires%%+*}" "+%s" 2>/dev/null || echo 0)
-    now_epoch=$(date "+%s")
-    if [ "$expires_epoch" -lt "$now_epoch" ] 2>/dev/null; then
+    # Use python3 for cross-platform date parsing
+    is_expired=$(python3 -c "
+from datetime import datetime, timezone
+import sys
+try:
+    ts = '${expires%%+*}'.replace('Z','')
+    exp = datetime.fromisoformat(ts).replace(tzinfo=timezone.utc)
+    print('yes' if exp < datetime.now(timezone.utc) else 'no')
+except: print('unknown')
+" 2>/dev/null || echo "unknown")
+    if [ "$is_expired" = "yes" ]; then
       warn "lark-cli token expired at $expires. Run: lark-cli auth login"
     fi
   fi
@@ -123,8 +136,9 @@ if [ ! -f "$SETTINGS_FILE" ]; then
   echo '{}' > "$SETTINGS_FILE"
 fi
 
-# Backup settings.json
-cp "$SETTINGS_FILE" "${SETTINGS_FILE}.bak"
+# Backup settings.json with timestamp
+backup_suffix=$(date '+%Y%m%d-%H%M%S')
+cp "$SETTINGS_FILE" "${SETTINGS_FILE}.${backup_suffix}.bak"
 
 # Use environment variables to pass paths into Python safely
 export _CC_NOTIFY_SETTINGS="$SETTINGS_FILE"

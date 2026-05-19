@@ -2,28 +2,45 @@
 # Sends a card message with urgent when Claude Code completes a task or needs attention.
 
 $UserOpenId = "ou_REPLACE_ME"
+$LogFile = Join-Path $env:USERPROFILE ".claude\hooks\cc-notify.log"
 
 if ($UserOpenId -like "ou_REPLACE*") {
     Write-Error "[cc-notify] USER_OPEN_ID not configured. Edit this script and set your open_id."
     exit 1
 }
 
-$inputJson = [System.Console]::In.ReadToEnd()
-$event = if ($inputJson) { ($inputJson | ConvertFrom-Json).hook_event_name } else { "unknown" }
+function Log($msg) {
+    $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -Path $LogFile -Value "[$ts] $msg" -ErrorAction SilentlyContinue
+}
+
+# Read and parse stdin JSON once
+$inputJson = $null
+$parsed = $null
+try {
+    $inputJson = [System.Console]::In.ReadToEnd()
+    if ($inputJson) {
+        $parsed = $inputJson | ConvertFrom-Json
+    }
+} catch {
+    $parsed = $null
+}
+
+$event = if ($parsed) { $parsed.hook_event_name } else { "unknown" }
 if (-not $event) { $event = "unknown" }
 
 switch ($event) {
     "Stop" {
-        $reason = if ($inputJson) { ($inputJson | ConvertFrom-Json).stop_reason } else { "unknown" }
+        $reason = if ($parsed) { $parsed.stop_reason } else { "unknown" }
         if (-not $reason) { $reason = "unknown" }
         $title = "✅ Claude Code 任务完成"
         $color = "green"
         $body = "**stop_reason**: $reason"
     }
     "Notification" {
-        $msg = if ($inputJson) { ($inputJson | ConvertFrom-Json).message } else { "需要关注" }
+        $msg = if ($parsed) { $parsed.message } else { "需要关注" }
         if (-not $msg) { $msg = "需要关注" }
-        $matcher = if ($inputJson) { ($inputJson | ConvertFrom-Json).matcher } else { "" }
+        $matcher = if ($parsed) { $parsed.matcher } else { "" }
         if (-not $matcher) { $matcher = "" }
         switch ($matcher) {
             "permission_prompt" { $title = "⚠️ Claude Code 需要确认"; $color = "orange" }
@@ -35,7 +52,7 @@ switch ($event) {
     default {
         $title = "🔔 Claude Code"
         $color = "grey"
-        $body = if ($inputJson) { ($inputJson | ConvertFrom-Json).message } else { "未知事件" }
+        $body = if ($parsed) { $parsed.message } else { "未知事件" }
         if (-not $body) { $body = "未知事件" }
     }
 }
@@ -51,20 +68,36 @@ $card = @{
     )
 } | ConvertTo-Json -Depth 5 -Compress
 
-# Send card message via lark-cli
-$sendResult = lark-cli im +messages-send --as bot --user-id $UserOpenId --content $card --msg-type interactive 2>$null
+# Write card JSON to temp file to avoid PowerShell quoting issues with external commands
+$tempFile = Join-Path $env:TEMP "cc-notify-card-$(Get-Random).json"
+try {
+    Set-Content -Path $tempFile -Value $card -Encoding UTF8
 
-if (-not $sendResult) {
-    Write-Error "[cc-notify] Failed to send message via lark-cli"
-    exit 1
-}
+    # Send card message via lark-cli, reading content from temp file
+    $cardContent = Get-Content -Path $tempFile -Raw
+    $sendResult = & lark-cli im +messages-send --as bot --user-id $UserOpenId --content $cardContent --msg-type interactive 2>&1
 
-$msgId = ($sendResult | ConvertFrom-Json).data.message_id
-
-if ($msgId) {
-    $urgentData = @{ user_id_list = @($UserOpenId) } | ConvertTo-Json -Compress
-    lark-cli api PATCH "/open-apis/im/v1/messages/$msgId/urgent_app" --as bot --params '{"user_id_type":"open_id"}' --data $urgentData 2>$null
-    if (-not $?) {
-        Write-Error "[cc-notify] Failed to mark message as urgent"
+    if (-not $sendResult) {
+        Log "ERROR: Failed to send message via lark-cli"
+        exit 1
     }
+
+    # Extract message_id
+    $msgId = $null
+    try {
+        $sendObj = $sendResult | ConvertFrom-Json
+        $msgId = $sendObj.data.message_id
+    } catch {
+        Log "WARN: Could not parse send result as JSON"
+    }
+
+    if ($msgId) {
+        $urgentData = @{ user_id_list = @($UserOpenId) } | ConvertTo-Json -Compress
+        & lark-cli api PATCH "/open-apis/im/v1/messages/$msgId/urgent_app" --as bot --params '{"user_id_type":"open_id"}' --data $urgentData 2>&1 | Out-Null
+        if (-not $?) {
+            Log "WARN: Failed to mark message as urgent"
+        }
+    }
+} finally {
+    Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue
 }

@@ -78,10 +78,10 @@ cd claude-code-feishu-notify
 
 # 替换 open_id（跨平台，用 python3 替代 sed）
 python3 -c "
-import sys
-f='notify-feishu.sh'
-t=open(f).read().replace('ou_REPLACE_ME', 'ou_你的实际id')
-open(f,'w').write(t)
+with open('notify-feishu.sh') as f:
+    t = f.read().replace('ou_REPLACE_ME', 'ou_YOUR_OPEN_ID')
+with open('notify-feishu.sh', 'w') as f:
+    f.write(t)
 "
 
 # 运行安装脚本
@@ -97,7 +97,7 @@ git clone https://github.com/<your-username>/claude-code-feishu-notify.git
 cd claude-code-feishu-notify
 
 # 替换 open_id
-(Get-Content notify-feishu.ps1 -Raw) -replace 'ou_REPLACE_ME', 'ou_你的实际id' | Set-Content notify-feishu.ps1
+(Get-Content notify-feishu.ps1 -Raw) -replace 'ou_REPLACE_ME', 'ou_YOUR_OPEN_ID' | Set-Content notify-feishu.ps1
 
 # 运行安装脚本
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser

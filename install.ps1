@@ -1,6 +1,6 @@
 # PowerShell: Install the Feishu notification hook into Claude Code (Windows)
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $HookScript = Join-Path $ScriptDir "notify-feishu.ps1"
@@ -19,15 +19,14 @@ if (-not (Get-Command lark-cli -ErrorAction SilentlyContinue)) {
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         npm install -g @larksuite/cli
         if (-not $?) { ErrorMsg "npm install -g failed." }
+        # Verify lark-cli is now available
+        if (-not (Get-Command lark-cli -ErrorAction SilentlyContinue)) {
+            ErrorMsg "lark-cli installed but not found in PATH. You may need to restart your shell."
+        }
         Info "lark-cli installed"
     } else {
         ErrorMsg "npm not found. Please install Node.js first: https://nodejs.org"
     }
-}
-
-## jq (not needed for PowerShell version, but check for completeness)
-if (-not (Get-Command jq -ErrorAction SilentlyContinue)) {
-    Warn "jq not found. PowerShell version does not require jq, but bash version does."
 }
 
 # ── 2. Check lark-cli auth ──
@@ -64,12 +63,17 @@ if (-not (Test-Path $SettingsFile)) {
     Set-Content $SettingsFile "{}"
 }
 
-# Backup settings.json
-Copy-Item $SettingsFile "${SettingsFile}.bak"
+# Backup settings.json with timestamp
+$backupSuffix = Get-Date -Format "yyyyMMdd-HHmmss"
+Copy-Item $SettingsFile "${SettingsFile}.${backupSuffix}.bak"
 
 $hookCommand = Join-Path $HooksDir "notify-feishu.ps1"
 
-$settings = Get-Content $SettingsFile -Raw | ConvertFrom-Json
+try {
+    $settings = Get-Content $SettingsFile -Raw | ConvertFrom-Json
+} catch {
+    ErrorMsg "Failed to parse settings.json: $_"
+}
 
 $stopHook = @(
     @{
@@ -94,6 +98,7 @@ $idleHook = @(
 
 $notificationHooks = @($permHook, $idleHook)
 
+# Merge hooks into existing settings (don't blindly overwrite)
 if (-not $settings.hooks) {
     $settings | Add-Member -NotePropertyName "hooks" -NotePropertyValue @{} -Force
 }
@@ -101,7 +106,11 @@ if (-not $settings.hooks) {
 $settings.hooks | Add-Member -NotePropertyName "Stop" -NotePropertyValue $stopHook -Force
 $settings.hooks | Add-Member -NotePropertyName "Notification" -NotePropertyValue $notificationHooks -Force
 
-$settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsFile
+try {
+    $settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsFile
+} catch {
+    ErrorMsg "Failed to write settings.json: $_"
+}
 
 Info "Hooks configured in settings.json"
 Write-Host "  Stop → notify on task completion (green card)"
