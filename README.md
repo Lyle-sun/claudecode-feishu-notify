@@ -61,16 +61,16 @@ cp -r claudecode-feishu-notify/skills/lark-workflow-cc-notify ~/.claude/skills/
 
 ```bash
 git clone https://github.com/Lyle-sun/claudecode-feishu-notify.git
-cd claudecode-feishu-notify
+cd claudecode-feishu-notify/skills/lark-workflow-cc-notify
 
 # 设置环境变量
 export CC_FEISHU_OPEN_ID="ou_YOUR_OPEN_ID"
 
 # 运行安装（macOS/Linux）
-chmod +x install.sh && ./install.sh
+chmod +x scripts/install.sh && ./scripts/install.sh
 
 # 运行安装（Windows PowerShell）
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser; .\install.ps1
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser; .\scripts\install.ps1
 ```
 
 ## 验证
@@ -85,13 +85,17 @@ echo '{"hook_event_name":"Stop","last_assistant_message":"Hello, task done!","cw
 
 ```
 claudecode-feishu-notify/
-├── notify-feishu.sh            # 核心脚本（macOS/Linux）
-├── notify-feishu.ps1           # 核心脚本（Windows）
-├── install.sh                  # 安装脚本（macOS/Linux）
-├── install.ps1                 # 安装脚本（Windows）
 ├── skills/
 │   └── lark-workflow-cc-notify/
-│       └── SKILL.md            # Claude Code skill 定义
+│       ├── SKILL.md                     # Skill 定义
+│       ├── scripts/
+│       │   ├── notify-feishu.sh         # 核心脚本（macOS/Linux）
+│       │   ├── notify-feishu.ps1        # 核心脚本（Windows）
+│       │   ├── install.sh              # 安装脚本（macOS/Linux）
+│       │   └── install.ps1             # 安装脚本（Windows）
+│       └── references/
+│           ├── claude-code-hooks.md     # Hooks 事件说明
+│           └── feishu-message-api.md    # 飞书 API 参考
 ├── .gitignore
 ├── README.md
 └── LICENSE

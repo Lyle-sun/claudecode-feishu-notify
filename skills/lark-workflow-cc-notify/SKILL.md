@@ -11,6 +11,10 @@ metadata:
 
 通过飞书私聊卡片消息 + 加急，在 Claude Code 任务完成或需要确认时通知你。
 
+**开始前先阅读：**
+- [Claude Code Hooks 事件说明](references/claude-code-hooks.md)
+- [飞书消息发送 API](references/feishu-message-api.md)
+
 ## 适用人群
 
 长时间使用 Claude Code 且需要离开终端的开发者。
@@ -42,12 +46,10 @@ metadata:
    - Windows：`[Environment]::SetEnvironmentVariable("CC_FEISHU_OPEN_ID", "ou_xxxx", "User")`
 
 3. 运行安装脚本：
-   - macOS/Linux：`chmod +x install.sh && ./install.sh`
-   - Windows PowerShell：`Set-ExecutionPolicy RemoteSigned -Scope CurrentUser; .\install.ps1`
+   - macOS/Linux：`chmod +x scripts/install.sh && ./scripts/install.sh`
+   - Windows PowerShell：`Set-ExecutionPolicy RemoteSigned -Scope CurrentUser; .\scripts\install.ps1`
 
 4. 重启 Claude Code 会话
-
-详细步骤见 [README.md](../README.md)。
 
 ## 环境变量
 
