@@ -25,19 +25,16 @@ Claude Code 飞书通知 Skill —— 任务完成或需要确认时，通过飞
 
 ## 安装
 
-在 Claude Code 中说：
-
-> 帮我配置飞书通知
-
-或者手动安装 Skill：
-
 ```bash
-# 克隆到你的 Claude Code skills 目录
 git clone https://github.com/Lyle-sun/claudecode-feishu-notify.git
 cp -r claudecode-feishu-notify/skills/lark-workflow-cc-notify ~/.claude/skills/
 ```
 
-安装后，Claude Code 会引导你完成以下配置（全程交互式）：
+然后在 Claude Code 中说：
+
+> 帮我配置飞书通知
+
+Claude Code 会引导你完成配置（全程交互式）：
 
 1. 安装 lark-cli（自动）
 2. 创建飞书自建应用 + 启用机器人能力
@@ -48,16 +45,9 @@ cp -r claudecode-feishu-notify/skills/lark-workflow-cc-notify ~/.claude/skills/
 
 **安装完成后重启 Claude Code 会话即可生效。**
 
-## 环境变量
+### 不使用 Skill 引导
 
-| 变量 | 必填 | 说明 |
-|------|------|------|
-| `CC_FEISHU_OPEN_ID` | 是 | 你的飞书 open_id（格式 `ou_xxxx`） |
-| `CC_FEISHU_NOTIFY` | 否 | 设为 `0` 时关闭通知（默认 `1` 开启） |
-
-## 手动安装
-
-如果不使用 Skill 引导，也可以手动运行安装脚本：
+如果不想通过 Skill 引导，也可以直接运行安装脚本：
 
 ```bash
 git clone https://github.com/Lyle-sun/claudecode-feishu-notify.git
@@ -72,6 +62,13 @@ chmod +x scripts/install.sh && ./scripts/install.sh
 # 运行安装（Windows PowerShell）
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser; .\scripts\install.ps1
 ```
+
+## 环境变量
+
+| 变量 | 必填 | 说明 |
+|------|------|------|
+| `CC_FEISHU_OPEN_ID` | 是 | 你的飞书 open_id（格式 `ou_xxxx`） |
+| `CC_FEISHU_NOTIFY` | 否 | 设为 `0` 时关闭通知（默认 `1` 开启） |
 
 ## 验证
 
