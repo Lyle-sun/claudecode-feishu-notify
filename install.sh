@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
-# Install the Feishu notification hook and skill into Claude Code
+# Install the Feishu notification hook into Claude Code
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HOOK_SCRIPT="${SCRIPT_DIR}/notify-feishu.sh"
-SKILL_DIR="${SCRIPT_DIR}/skills/lark-workflow-cc-notify"
 SETTINGS_FILE="$HOME/.claude/settings.json"
 HOOKS_DIR="$HOME/.claude/hooks"
-SKILLS_DIR="$HOME/.claude/skills"
 
 # 1. Deploy hook script
 if [ ! -f "$HOOK_SCRIPT" ]; then
@@ -21,14 +19,7 @@ cp "$HOOK_SCRIPT" "$HOOKS_DIR/notify-feishu.sh"
 chmod +x "$HOOKS_DIR/notify-feishu.sh"
 echo "✅ Hook script deployed to $HOOKS_DIR/notify-feishu.sh"
 
-# 2. Deploy skill
-if [ -d "$SKILL_DIR" ]; then
-  mkdir -p "$SKILLS_DIR/lark-workflow-cc-notify"
-  cp "$SKILL_DIR/SKILL.md" "$SKILLS_DIR/lark-workflow-cc-notify/SKILL.md"
-  echo "✅ Skill deployed to $SKILLS_DIR/lark-workflow-cc-notify/"
-fi
-
-# 3. Configure hooks in settings.json
+# 2. Configure hooks in settings.json
 if [ ! -f "$SETTINGS_FILE" ]; then
   echo "Error: Claude Code settings not found at $SETTINGS_FILE"
   exit 1

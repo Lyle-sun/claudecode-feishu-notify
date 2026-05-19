@@ -4,7 +4,8 @@
 
 set -euo pipefail
 
-USER_OPEN_ID="ou_f81ddcc56b518ca1b0df3ce94db740dc"
+# Replace with your open_id (run: lark-cli contact +get-user --as user)
+USER_OPEN_ID="ou_REPLACE_ME"
 
 input=$(cat)
 
