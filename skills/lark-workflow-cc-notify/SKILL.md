@@ -2,6 +2,9 @@
 name: lark-workflow-cc-notify
 version: 1.2.0
 description: "Claude Code 飞书通知：任务完成或需要确认时，通过飞书私聊卡片消息+加急提醒。当用户说'配置通知'、'飞书通知'、'cc通知'、'通知我'时使用。"
+metadata:
+  requires:
+    bins: ["lark-cli"]
 ---
 
 # Claude Code 飞书通知
@@ -61,13 +64,6 @@ description: "Claude Code 飞书通知：任务完成或需要确认时，通过
 | Notification | permission_prompt | 橙色 | 需要用户确认操作 |
 | Notification | idle_prompt | 蓝色 | Claude Code 空闲等待 |
 | Notification | auth_success | 绿色 | 认证成功 |
-
-## 工作原理
-
-1. Claude Code hooks 在事件触发时调用通知脚本
-2. 脚本从 stdin 读取事件 JSON，根据事件类型和 `notification_type` 字段生成飞书卡片内容
-3. 通过 `lark-cli im +messages-send --msg-type interactive` 发送飞书卡片私聊消息
-4. 从发送结果提取 `message_id`，调用 `PATCH /open-apis/im/v1/messages/{message_id}/urgent_app` 加急
 
 ## 权限
 
