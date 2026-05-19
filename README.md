@@ -76,10 +76,14 @@ Set-ExecutionPolicy RemoteSigned -Scope CurrentUser; .\scripts\install.ps1
 ## 验证
 
 ```bash
+# 验证 Stop 事件（绿色卡片）
 echo '{"hook_event_name":"Stop","last_assistant_message":"Hello, task done!","cwd":"/path/to/project"}' | ~/.claude/hooks/notify-feishu.sh
+
+# 验证 Notification 事件（橙色卡片）
+echo '{"hook_event_name":"Notification","notification_type":"permission_prompt","message":"Allow tool execution?"}' | ~/.claude/hooks/notify-feishu.sh
 ```
 
-飞书应收到绿色卡片加急通知。
+飞书应收到对应的加急卡片通知。
 
 ## 项目结构
 
